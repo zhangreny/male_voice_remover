@@ -1,0 +1,49 @@
+[project]
+name = "male-voice-remover"
+version = "0.1.0"
+description = "AI工具，智能识别并去除视频中的男性声音，保留女性声音"
+authors = [
+    {name = "User", email = "user@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.9,<4.0"
+dependencies = [
+    "torch>=2.0.0",
+    "torchaudio>=2.0.0",
+    "transformers>=4.30.0",
+    "librosa>=0.10.0",
+    "soundfile>=0.12.0",
+    "pydub>=0.25.0",
+    "scipy>=1.10.0",
+    "moviepy>=2.0.0",
+    "ffmpeg-python>=0.2.0",
+    "numpy>=1.24.0",
+    "matplotlib>=3.7.0",
+    "pillow>=10.0.0",
+    "gradio>=4.0.0",
+    "click>=8.1.0",
+    "audio-separator>=0.12.0",
+    "tqdm>=4.65.0",
+    "huggingface-hub>=0.16.0",
+    "python-dotenv>=1.0.0",
+    "opencv-python>=4.7.0",
+    "requests>=2.31.0",
+    "typer>=0.9.0",
+    "uvicorn>=0.22.0"
+]
+
+[project.scripts]
+male-voice-remover = "main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/audio_extractor", "src/audio_processor", "src/gender_detector", "src/ui", "src/vocal_separator"]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "black>=22.0.0"
+]
