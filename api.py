@@ -15,21 +15,51 @@ from audio_separator.separator import Separator
 from transformers import Wav2Vec2ForSequenceClassification, Wav2Vec2FeatureExtractor
 
 # --- 1. 环境与硬件配置 ---
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"  # 使用镜像站加速
 ffmpeg_exe = im_ffmpeg.get_ffmpeg_exe()
 os.environ["PATH"] = os.path.dirname(ffmpeg_exe) + os.pathsep + os.environ["PATH"]
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-MODEL_CACHE = Path(os.path.expanduser("~")) / ".male_voice_remover" / "models"
+MODEL_CACHE = Path("D:/male_voice_remover/models")
 MODEL_CACHE.mkdir(parents=True, exist_ok=True)
 OUTPUT_DIR = Path("D:/male_voice_remover/outputs")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 # --- 2. 全局模型初始化 (在 API 启动前加载到内存) ---
-print(f"[INIT] 正在预加载 AI 性别检测模型至 {DEVICE}...")
+print(f"[INIT] 正在预加载 AI 性别检测模型至 {DEVICE} (缓存目录: {MODEL_CACHE})...")
 GENDER_MODEL_NAME = "prithivMLmods/Common-Voice-Gender-Detection"
-gender_extractor = Wav2Vec2FeatureExtractor.from_pretrained(GENDER_MODEL_NAME)
-gender_model = Wav2Vec2ForSequenceClassification.from_pretrained(GENDER_MODEL_NAME).to(
-    DEVICE
-)
+MIRROR_MODEL_NAME = "hf-mirror.com/prithivMLmods/Common-Voice-Gender-Detection"
+
+# 优先尝试本地加载 (local_files_only=True)，失败后再尝试从镜像站下载
+try:
+    gender_extractor = Wav2Vec2FeatureExtractor.from_pretrained(
+        GENDER_MODEL_NAME, cache_dir=str(MODEL_CACHE), local_files_only=True
+    )
+    gender_model = Wav2Vec2ForSequenceClassification.from_pretrained(
+        GENDER_MODEL_NAME, cache_dir=str(MODEL_CACHE), local_files_only=True
+    )
+    gender_model.to(DEVICE)
+    print("[INIT] 已从本地成功加载性别检测模型")
+except Exception:
+    print("[INIT] 本地缓存不完整，正在从镜像站下载...")
+    # 如果 GENDER_MODEL_NAME 不行，尝试直接使用镜像 URL
+    try:
+        gender_extractor = Wav2Vec2FeatureExtractor.from_pretrained(
+            MIRROR_MODEL_NAME, cache_dir=str(MODEL_CACHE), local_files_only=False
+        )
+        gender_model = Wav2Vec2ForSequenceClassification.from_pretrained(
+            MIRROR_MODEL_NAME, cache_dir=str(MODEL_CACHE), local_files_only=False
+        )
+        gender_model.to(DEVICE)
+    except Exception:
+        # 最后的保底尝试
+        gender_extractor = Wav2Vec2FeatureExtractor.from_pretrained(
+            GENDER_MODEL_NAME, cache_dir=str(MODEL_CACHE), local_files_only=False
+        )
+        gender_model = Wav2Vec2ForSequenceClassification.from_pretrained(
+            GENDER_MODEL_NAME, cache_dir=str(MODEL_CACHE), local_files_only=False
+        )
+        gender_model.to(DEVICE)
+
 gender_model.eval()
 
 app = Flask(__name__)
